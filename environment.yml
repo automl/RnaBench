@@ -93,7 +93,7 @@ dependencies:
       - libclang==16.0.0
       - lit==15.0.7
       - locket
-      - logging-exceptions==0.1.8
+      - logging-exceptions
       - lz4
       - Markdown==3.4.3
       - MarkupSafe
