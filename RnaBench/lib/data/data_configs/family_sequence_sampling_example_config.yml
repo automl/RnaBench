@@ -1,0 +1,34 @@
+initial_train:                     ['data/initial_data_benchmark.plk.gz']
+working_dir:                       'working_dir'
+bprna_dir:                         'external_algorithms/bpRNA'
+ncbi_bin_dir:                      'external_algorithms/ncbi-blast-2.12.0+/bin/'
+out_dir:                           'data'
+data_dir:                          'data'
+rfam_cm_path:                      'RnaBench/lib/data/CMs/Rfam.cm'
+cm_database:                       'RnaBench/lib/data/CMs/ts1_ts2_ts3_ts_hard_puzzles24.cm'
+explicit_valid:                    ['data/pdb_vl1.plk.gz']
+explicit_test:                     ['data/pdb_ts3.plk.gz']
+resolve_iupac:                     True
+remove_n_only:                     True
+initial_columns:                   ['sequence', 'pairs', 'Id', 'origin', 'is_pdb', 'has_pk', 'has_multiplet', 'has_nc', 'length', 'gc_content']
+final_columns:                     ['sequence', 'pairs', 'Id', 'origin', 'is_pdb', 'has_pk', 'has_multiplet', 'has_nc', 'length', 'gc_content']
+dataset_name:                      'family_sampling_example'
+no_pk:                             False
+no_multiplets:                     False
+remove_canonical_only:             False
+no_pdb:                            False
+no_nc:                             False
+pdb_only:                          False
+nc_only:                           False
+pk_only:                           False
+multiplets_only:                   False
+canonical_only:                    False
+apply_pipelines:                   [synthetic]  # 'synthetic'
+cms_from:                          ['RnaBench/lib/data/CMs/pdb_ts3']  # 'RnaBench/lib/data/CMs/pdb_ts_hard', 'RnaBench/lib/data/CMs/pdb_ts1', 'RnaBench/lib/data/CMs/pdb_ts2',
+n_samples_per_family:              1
+use_families:                      ['tRNA', 'MEG8_2']  # ['tRNA', 'MEG8_2']
+cluster_train_internal:            False
+n_structures_per_sequence:         False  # 5
+seed:                              0
+design_task:                       ''
+sample_valid_size:                 0

@@ -1,0 +1,34 @@
+initial_train:                     ['data/initial_data_benchmark.plk.gz']
+working_dir:                       'working_dir'
+bprna_dir:                         'external_algorithms/bpRNA'
+ncbi_bin_dir:                      'external_algorithms/ncbi-blast-2.12.0+/bin/'
+out_dir:                           'data'
+data_dir:                          'data'
+rfam_cm_path:                      ''
+cm_database:                       ''
+explicit_valid:                    []
+explicit_test:                     ['data/anta_rfam-test.plk.gz']
+resolve_iupac:                     True
+remove_n_only:                     True
+initial_columns:                   ['sequence', 'pairs', 'Id', 'origin', 'is_pdb', 'has_pk', 'has_multiplet', 'has_nc', 'length', 'gc_content']
+final_columns:                     ['sequence', 'pairs', 'Id', 'origin', 'is_pdb', 'has_pk', 'has_multiplet', 'has_nc', 'length', 'gc_content']
+dataset_name:                      'constrained_inverse_rna_folding'
+no_pk:                             True
+no_multiplets:                     True
+remove_canonical_only:             False
+no_pdb:                            False
+no_nc:                             False
+pdb_only:                          False
+nc_only:                           False
+pk_only:                           False
+multiplets_only:                   False
+canonical_only:                    False
+apply_pipelines:                   ['design']
+cms_from:                          []
+n_samples_per_family:              0
+use_families:                      []  # ['tRNA', 'MEG8_2']
+cluster_train_internal:            False
+n_structures_per_sequence:         False  # 5
+seed:                              0
+design_task:                       'constrained_inverse_rna_folding'
+sample_valid_size:                 100
