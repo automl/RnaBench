@@ -121,7 +121,7 @@ dependencies:
       - nvidia-nvtx-cu11==11.7.91
       - oauthlib==3.2.2
       - omegaconf
-      - OpenMM==8.0.0
+      - OpenMM
       - opt-einsum==3.3.0
       - packaging
       - pandas==1.5.3
