@@ -439,6 +439,11 @@ def build_dataset(config):
     df = pd.concat([train, valid, test])
     print(df.groupby(['origin']).count())
 
+    pipeline_data = []
+    pipeline_data.append(('initial_train', train.copy()))
+    pipeline_data.append(('initial_valid', valid.copy()))
+    pipeline_data.append(('initial_test', test.copy()))
+
     if 'design' in config['apply_pipelines']:
         print('### Apply design pipeline')
         print('### Number of samples in train set:', len(train))
@@ -487,6 +492,12 @@ def build_dataset(config):
         valid = train_valid[~train_valid['origin'].str.contains('train')]
         train = train_valid[train_valid['origin'].str.contains('train')]
 
+        ss80_1_train_data = ('ss80_1_train', train.copy())
+        ss80_1_valid_data = ('ss80_1_valid', valid.copy())
+
+        pipeline_data.append(ss80_1_train_data)
+        pipeline_data.append(ss80_1_valid_data)
+
         print('### Number of samples in valid', valid.shape[0])
         print('### Number of samples in train', train.shape[0])
 
@@ -501,6 +512,12 @@ def build_dataset(config):
         pipeline.apply_sequence_similarity()
 
         train = pipeline.reduce
+
+        ss80_2_train_data = ('ss80_2_train', train.copy())
+        ss80_2_valid_data = ('ss80_2_valid', valid.copy())
+
+        pipeline_data.append(ss80_2_train_data)
+        pipeline_data.append(ss80_2_valid_data)
 
         s = []
         for i, row in train.iterrows():
@@ -525,6 +542,9 @@ def build_dataset(config):
         vsets = '_'.join(valid['origin'].unique())
         e_value = 10
         hits = []
+        
+        per_sample_train_valid = train_valid.copy()
+
         # build database of train_valid to query with test
         fasta_path = Path(f"{config['working_dir']}/train_{vsets}.fasta")
         df2fasta(train_valid, fasta_path)
@@ -551,35 +571,83 @@ def build_dataset(config):
                 if tv_hits is not None:
                     print('### Hits with blast search for dataset:', dset, 'Id:', i, ':', len(tv_hits))
                     hits.append(tv_hits)
+                    #TODO: print if the sequence is in ts1 or ts3 and also in ts_hard: requires that we know the sequences of ts_hard.
                 else:
                     print('### No hits found for dataset', dset, 'Id', i)
-        hits = pd.concat(hits)
-        hit_list = list(set([int(x.split('-')[0]) for x in hits['Id'].unique()]))
-        print('### Total number of hits in blast search', len(hit_list))
+                
+                if tv_hits is not None:
+                    current_sample_hit_list = [int(x.split('-')[0]) for x in tv_hits['Id'].unique()]
+                    per_sample_train_valid = per_sample_train_valid[~per_sample_train_valid['Id'].isin(current_sample_hit_list)]
+                    per_sample_train = per_sample_train_valid[per_sample_train_valid['origin'].str.contains('train')]
+                    per_sample_valid = per_sample_train_valid[~per_sample_train_valid['origin'].str.contains('train')]
+                    pipeline_data.append((f'blast_{dset}_{i}_train', per_sample_train.copy()))
+                    pipeline_data.append((f'blast_{dset}_{i}_valid', per_sample_valid.copy()))
+                else:
+                    per_sample_train = per_sample_train_valid[per_sample_train_valid['origin'].str.contains('train')]
+                    per_sample_valid = per_sample_train_valid[~per_sample_train_valid['origin'].str.contains('train')]
+                    pipeline_data.append((f'blast_{dset}_{i}_train', per_sample_train.copy()))
+                    pipeline_data.append((f'blast_{dset}_{i}_valid', per_sample_valid.copy()))
 
-        print('### Number of samples in train+valid before removing hits:', len(train_valid))
-        train_valid = train_valid[~train_valid['Id'].isin(hit_list)]
-        print('### Number of samples in train+valid:', len(train_valid))
 
-        train = train_valid[train_valid['origin'].str.contains('train')]
-        print('### Train has size', len(train))
-        valid = train_valid[~train_valid['origin'].str.contains('train')]
-        print('### Valid has size', len(valid))
+            # get intermediate train and valid data
+            intermediate_hits = pd.concat(hits)
+            intermediate_hit_list = list(set([int(x.split('-')[0]) for x in intermediate_hits['Id'].unique()]))
+            intermediate_train_valid = train_valid[~train_valid['Id'].isin(intermediate_hit_list)]
+            intermediate_train = intermediate_train_valid[intermediate_train_valid['origin'].str.contains('train')]
+            intermediate_valid = intermediate_train_valid[~intermediate_train_valid['origin'].str.contains('train')]
 
-        s = []
-        for i, row in train.iterrows():
-            s += row['sequence']
-        print('### Count nucleotides in train after blast:', Counter(s))
+            pipeline_data.append((f'blast_{dset}_train', intermediate_train.copy()))
+            pipeline_data.append((f'blast_{dset}_valid', intermediate_valid.copy()))
 
-        s = []
-        for i, row in valid.iterrows():
-            s += row['sequence']
-        print('### Count nucleotides in valid after blast:', Counter(s))
+        if hits:
+            hits = pd.concat(hits)
+            hit_list = list(set([int(x.split('-')[0]) for x in hits['Id'].unique()]))
+            print('### Total number of hits in blast search', len(hit_list))
+    
+            print('### Number of samples in train+valid before removing hits:', len(train_valid))
+            train_valid = train_valid[~train_valid['Id'].isin(hit_list)]
+            print('### Number of samples in train+valid:', len(train_valid))
+    
+            train = train_valid[train_valid['origin'].str.contains('train')]
+            print('### Train has size', len(train))
+            valid = train_valid[~train_valid['origin'].str.contains('train')]
+            print('### Valid has size', len(valid))
+    
+            s = []
+            for i, row in train.iterrows():
+                s += row['sequence']
+            print('### Count nucleotides in train after blast:', Counter(s))
+    
+            s = []
+            for i, row in valid.iterrows():
+                s += row['sequence']
+            print('### Count nucleotides in valid after blast:', Counter(s))
+    
+            s = []
+            for i, row in test.iterrows():
+                s += row['sequence']
+            print('### Count nucleotides in test after blast:', Counter(s))
+        else:
+            train = train_valid[train_valid['origin'].str.contains('train')]
+            print('### Train has size', len(train))
+            valid = train_valid[~train_valid['origin'].str.contains('train')]
+            print('### Valid has size', len(valid))
+    
+            s = []
+            for i, row in train.iterrows():
+                s += row['sequence']
+            print('### Count nucleotides in train after blast:', Counter(s))
+    
+            s = []
+            for i, row in valid.iterrows():
+                s += row['sequence']
+            print('### Count nucleotides in valid after blast:', Counter(s))
+    
+            s = []
+            for i, row in test.iterrows():
+                s += row['sequence']
+            print('### Count nucleotides in test after blast:', Counter(s))
 
-        s = []
-        for i, row in test.iterrows():
-            s += row['sequence']
-        print('### Count nucleotides in test after blast:', Counter(s))
 
 
 
@@ -588,6 +656,13 @@ def build_dataset(config):
         print('### Apply sequence and structure similarity pipeline')
 
         train_valid = pd.concat([train, valid])
+
+        train_intermediate = train.copy()
+        valid_intermediate = valid.copy()
+
+        train_intermediate.loc[:, 'Id'] = train_intermediate['Id'].apply(str)
+        valid_intermediate.loc[:, 'Id'] = valid_intermediate['Id'].apply(str)
+
 
         print('### Number of samples in train_valid', len(train_valid))
 
@@ -604,19 +679,39 @@ def build_dataset(config):
         # 'ts1_ts2_ts3_ts_hard_puzzles24.cm'
         for i, cm in enumerate(cms, 1):
             try:
-                hit_list += infernal.search_database(cm_database=config['cm_database'], identifier=str(cm.stem), fasta_db=fasta_path)
+                # hit_list += infernal.search_database(cm_database=config['cm_database'], identifier=str(cm.stem), fasta_db=fasta_path)
+                # hit_list += infernal.search_database(cm_database=cm, identifier=str(cm.stem), fasta_db=fasta_path)
+                current_hits = infernal.search_database(cm_database=cm, identifier=str(cm.stem), fasta_db=fasta_path)
+                print('### Found', len(current_hits), 'hits for CM', cm.stem, 'from', cm.parents[0])
+                hit_list += current_hits
+                #TODO: If cm is ts_hard, check where the sequence originates from, ts1, or ts3... and print this.
+
+                # train_intermediate = train_valid[train_valid['origin'].str.contains('train')]
+                # valid_intermediate = train_valid[~train_valid['origin'].str.contains('train')]
+
+                train_intermediate = train_intermediate[~train_intermediate['Id'].isin(current_hits)]
+                valid_intermediate = valid_intermediate[~valid_intermediate['Id'].isin(current_hits)]
+
+                pipeline_data.append((f"cm_{str(cm.parents[0]).split('/')[-1]}_{cm.stem}_train", train_intermediate.copy()))
+                pipeline_data.append((f"cm_{str(cm.parents[0]).split('/')[-1]}_{cm.stem}_valid", valid_intermediate.copy()))
+                
+
+
             except ValueError as e:
                 print(e)
             except Exception as e:
                 print(e)
                 continue
             hit_list = list(set(hit_list))
+            print('### Number of non-redundant hits so far:', len(hit_list))
 
             print('### Found', len(hit_list), f'hits after searching {i}/{len(cms)} CMs.')
+            
         print('### Total number of hits', len(hit_list))
 
         train_valid.loc[:, 'Id'] = train_valid['Id'].apply(str)
-        train_valid.loc[:, 'sss'] = ~train_valid['Id'].isin(hit_list)
+        if hit_list:
+            train_valid.loc[:, 'sss'] = ~train_valid['Id'].isin(hit_list)
         print('### Number of samples in train+valid after sequence and similarity pipeline:', train_valid[train_valid['sss']].shape)
 
         test.loc[:, 'sss'] = True
@@ -627,6 +722,9 @@ def build_dataset(config):
         print('### Train has size', len(train))
         valid = train_valid[~train_valid['origin'].str.contains('train')]
         print('### Valid has size', len(valid))
+
+        pipeline_data.append(('sss_train', train.copy()))
+        pipeline_data.append(('sss_valid', valid.copy()))
 
         s = []
         for i, row in train.iterrows():
@@ -650,13 +748,13 @@ def build_dataset(config):
         test = test[config['final_columns']]
         test = test.reset_index(drop=True)
         test.loc[:, 'Id'] = test.index
-        with open(f"{config['out_dir']}/{config['dataset_name']}_benchmark.plk", 'wb') as f:
+        with open(f"{config['out_dir']}/{config['dataset_name']}_benchmark.pkl", 'wb') as f:
             pickle.dump(test, f)
     if not valid.empty:
         valid = valid[config['final_columns']]
         valid = valid.reset_index(drop=True)
         valid.loc[:, 'Id'] = valid.index
-        with open(f"{config['out_dir']}/{config['dataset_name']}_valid.plk", 'wb') as f:
+        with open(f"{config['out_dir']}/{config['dataset_name']}_valid.pkl", 'wb') as f:
             pickle.dump(valid, f)
 
 
@@ -666,8 +764,28 @@ def build_dataset(config):
     train.loc[:, 'Id'] = train.index
     print(train)
 
-    with open(f"{config['out_dir']}/{config['dataset_name']}_train.plk", 'wb') as f:
+    with open(f"{config['out_dir']}/{config['dataset_name']}_train.pkl", 'wb') as f:
         pickle.dump(train, f)
+
+    print('### Final Number of samples in train set:', train.shape[0])
+    print('### Final Number of samples in valid set:', valid.shape[0])
+    print('### Final Number of samples in test set:', test.shape[0])
+
+    print('########################################################################')
+    print('### PIPELINE STATS ###')
+    print()
+    print('name', 'num_samples', 'PDB', 'non-PDB')
+    print()
+    for name, data in pipeline_data:
+        d_pdb = data[data['is_pdb']]
+        n_pdb = data[~data['is_pdb']]
+        print(name, data.shape[0], d_pdb.shape[0], n_pdb.shape[0])
+    print()
+    print('########################################################################')
+
+    import torch
+
+    torch.save(pipeline_data, f"{config['out_dir']}/{config['dataset_name']}_pipeline_stats.pt")
 
 
 
