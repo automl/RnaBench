@@ -750,7 +750,7 @@ class Dataset_Cut_concat_new_canonicle(data.Dataset):
         for n, cord in enumerate(perm_nc):
             i, j = cord
             data_nc[n, :data_len, :data_len] = np.matmul(data_seq[:data_len, i].reshape(-1, 1), data_seq[:data_len, j].reshape(1, -1))
-        data_nc = data_nc.sum(axis=0).astype(np.bool)
+        data_nc = data_nc.sum(axis=0).astype(bool)
         data_fcn_1 = np.zeros((1,l,l))
         data_fcn_1[0,:data_len,:data_len] = creatmat(data_seq[:data_len,])
         #zero_mask = z_mask(data_len)[None, :, :, None]

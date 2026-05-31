@@ -11,7 +11,6 @@ from pathlib import Path
 from datetime import datetime
 
 from torch.utils.data import DataLoader
-from torchvision import transforms
 
 from RnaBench.download import select_and_download
 from RnaBench.lib.datasets import RnaDataset, TorchDataset, ToTensor
@@ -237,6 +236,7 @@ class Benchmark():
                       max_length=None,
                       **kwargs,
                       ):
+        from torchvision import transforms
 
         transform = transforms.Compose([ToTensor(device=device)])
 
@@ -462,7 +462,7 @@ class RnaDesignBenchmark(Benchmark):
             if results_path is not None:
                 out_path = Path(results_path)
             else:
-                out_path = Path(self.results_dir, 'RNA_design', self.task.value, algorithm_name, folding_algo_name, f"{'_'.join([str(x) for x in [algorithm_name, self._evaluation_counter, 'min_len', self.min_length, 'max_len', self.max_length, 'nc', self.nc, 'pks', self.pks, 'multiplets', self.multiplets, folding_algorithm, 'timeout', self.timeout]])}_{'-'.join(now.split('/')).replace(' ', '-')}.plk")
+                out_path = Path(self.results_dir, 'RNA_design', self.task.value, algorithm_name, folding_algo_name, f"{'_'.join([str(x) for x in [algorithm_name, self._evaluation_counter, 'min_len', self.min_length, 'max_len', self.max_length, 'nc', self.nc, 'pks', self.pks, 'multiplets', self.multiplets, folding_algo_name, 'timeout', self.timeout]])}_{'-'.join(now.split('/')).replace(' ', '-')}.plk")
             with open(out_path, 'wb') as f:
                 pickle.dump(self._results, f)
 

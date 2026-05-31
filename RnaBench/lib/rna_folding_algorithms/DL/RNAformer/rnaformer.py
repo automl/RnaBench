@@ -85,7 +85,10 @@ class RNAformer():
             state_dict = {k: v.half() for k, v in state_dict.items()}
         else:
             state_dict = {k: v.float() for k, v in state_dict.items()}
-            config.RNAformer.flash_attn = False
+        # FlashAttention is an optional CUDA-only dep. We don't bundle it, so
+        # always disable it here — the slower torch.matmul attention works
+        # everywhere.
+        config.RNAformer.flash_attn = False
     
         self.max_len = state_dict["seq2mat_embed.src_embed_1.embed_pair_pos.weight"].shape[1]
     

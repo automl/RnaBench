@@ -1,54 +1,41 @@
-from RnaBench.lib.datasets import RnaDataset
-from RnaBench.lib.visualization import RnaVisualizer, RNAStatistics
-# benchmark = 'intra_family'
-# benchmark = 'inter_family'
-# benchmark = 'biophysical_model'
-# benchmark = 'inverse_rna_folding'
-benchmark = 'constrained_design'
+import pandas as pd
+
+from RnaBench.lib.visualization import RnaVisualizer
+
+# The histo_dataset_comparison_express plot only consumes the 'length' column,
+# so we read it directly from the pickled DataFrame and skip the per-sample
+# RNAStatistics aggregation (which iterates every pair and OOM's on
+# biophysical_model_train's 600 k rows).
 
 benchmarks = [
-'intra_family',
-'inter_family',
-'biophysical_model',
-'inverse_rna_folding',
-'constrained_design',
+    'intra_family',
+    'inter_family',
+    'biophysical_model',
+    'inverse_rna_folding',
+    'constrained_design',
 ]
 
-for benchmark in benchmarks:
 
+def length_df(path):
+    return pd.read_pickle(path)[['length']].copy()
+
+
+for benchmark in benchmarks:
     labels = []
     df_list = []
 
-    df_path=f'data/{benchmark}_train.plk.gz'
-    dset = RnaDataset(dataset=df_path)
-    stats = RNAStatistics(dset)
-    stats.get_dataset_statistics()
+    df_list.append(length_df(f'data/{benchmark}_train.plk.gz'))
     labels.append(f"{benchmark}-Train")
-    df_list.append(stats.per_sample_stats_df)
 
-    df_path=f'data/{benchmark}_valid.plk.gz'
-    dset = RnaDataset(dataset=df_path)
-    stats = RNAStatistics(dset)
-    stats.get_dataset_statistics()
+    df_list.append(length_df(f'data/{benchmark}_valid.plk.gz'))
     labels.append(f"{benchmark}-Valid")
-    df_list.append(stats.per_sample_stats_df)
 
-    df_path=f'data/{benchmark}_benchmark.plk.gz'
-    dset = RnaDataset(dataset=df_path)
-    stats = RNAStatistics(dset)
-    stats.get_dataset_statistics()
+    df_list.append(length_df(f'data/{benchmark}_benchmark.plk.gz'))
     labels.append(f"{benchmark}-Test")
-    df_list.append(stats.per_sample_stats_df)
 
     if benchmark == 'inter_family':
-        df_path=f'data/{benchmark}_fine_tuning_train.plk.gz'
-        dset = RnaDataset(dataset=df_path)
-        stats = RNAStatistics(dset)
-        stats.get_dataset_statistics()
+        df_list.append(length_df(f'data/{benchmark}_fine_tuning_train.plk.gz'))
         labels.append(f"{benchmark}-Fine-Tune")
-        df_list.append(stats.per_sample_stats_df)
 
     vis = RnaVisualizer()
-    vis.histo_dataset_comparison_express(df_list,
-                                         labels=labels,
-                                         )
+    vis.histo_dataset_comparison_express(df_list, labels=labels, show=False)

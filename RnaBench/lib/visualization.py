@@ -979,36 +979,43 @@ class RNAStatistics():
         self.detailed_statistics = defaultdict(list)
         self.per_sample_stats = []
 
-        nucs = ''
+        nuc_a = nuc_c = nuc_g = nuc_u = 0
+        n_all_pairs = n_gc = n_au = n_gu = n_nc = 0
+        pair_keys = ('A-U', 'C-G', 'G-U')
 
         for rna in self.data:
             per_sample_res = {}
             pair_numbers = defaultdict(list)
             seq = ''.join(rna.sequence)
-            nucs += seq  #  ''.join(seq)
-
+            su = seq.upper()
+            sa = su.count('A')
+            sc = su.count('C')
+            sg = su.count('G')
+            su_count = su.count('U')
+            nuc_a += sa
+            nuc_c += sc
+            nuc_g += sg
+            nuc_u += su_count
 
             self.detailed_statistics['length'].append(len(seq))
             per_sample_res['length'] = len(seq)
 
-            pairs = rna.pairs  #  [(p1, p2, pk) for p1, p2, pk in zip(rna.pos1id, rna.pos2id, rna.pk)]
+            pairs = rna.pairs
             per_sample_res['num_pairs'] = len(pairs)
-
-
-            self.detailed_statistics['all_pairs'] += pairs
+            n_all_pairs += len(pairs)
 
             for p in pairs:
                 pair_numbers[p[0]].append(p[1])
                 pair_numbers[p[1]].append(p[0])
-                type = sorted([seq[p[0]], seq[p[1]]])
-                if not '-'.join(type) in per_sample_res.keys():
-                    per_sample_res['-'.join(type)] = [(p[0], p[1])]
+                pair_type = '-'.join(sorted([seq[p[0]], seq[p[1]]]))
+                if pair_type == 'C-G':
+                    n_gc += 1
+                elif pair_type == 'A-U':
+                    n_au += 1
+                elif pair_type == 'G-U':
+                    n_gu += 1
                 else:
-                    per_sample_res['-'.join(type)].append((p[0], p[1]))
-                self.detailed_statistics['-'.join(type)].append(1)
-                if '-'.join(type) not in ['G-U', 'A-U', 'C-G']:
-                    self.detailed_statistics['nc_pairs'].append(1)
-                # self.detailed_statistics['page'].append(p[2])
+                    n_nc += 1
 
             wc, wobble, nc = get_pair_types(seq, pairs)
             self.detailed_statistics['WC'].append(wc)
@@ -1018,49 +1025,35 @@ class RNAStatistics():
             per_sample_res['Wobble'] = wobble
             per_sample_res['NC'] = nc
 
-            pk_pairs = [(p1, p2) for (p1, p2, pk) in pairs if pk > 0]
-            self.detailed_statistics['PK'].append(pk_pairs)
-            per_sample_res['PKs'] = pk_pairs
+            has_pk = any(pk > 0 for (_, _, pk) in pairs)
+            self.detailed_statistics['pk_sample'].append(has_pk)
 
-            if pk_pairs:
-                self.detailed_statistics['pk_sample'].append(True)
-            else:
-                self.detailed_statistics['pk_sample'].append(False)
-
-            multiplets = []
-
+            has_multi = False
             for k, v in pair_numbers.items():
-                # print(multiplets)
                 if len(v) > 1:
-                    for p in v:
-                        # print(p, v)
-                        multiplets.append(tuple(sorted([k, p])))
-            # print(multiplets, type(multiplets), set(multiplets))
-            multiplets = list(set(multiplets))
+                    has_multi = True
+                    break
+            per_sample_res['has_multi'] = has_multi
+            self.detailed_statistics['multiplet_sample'].append(has_multi)
 
-            per_sample_res['multiplets'] = multiplets
-
-            self.detailed_statistics['multiplets'].append(multiplets)
-
-            if multiplets:
-                self.detailed_statistics['multiplet_sample'].append(True)
-            else:
-                self.detailed_statistics['multiplet_sample'].append(False)
-
-            per_sample_res['A'] = seq.upper().count('A')
-            per_sample_res['C'] = seq.upper().count('C')
-            per_sample_res['G'] = seq.upper().count('G')
-            per_sample_res['U'] = seq.upper().count('U')
+            per_sample_res['A'] = sa
+            per_sample_res['C'] = sc
+            per_sample_res['G'] = sg
+            per_sample_res['U'] = su_count
 
             per_sample_res['Id'] = rna.id
             self.per_sample_stats.append(per_sample_res)
 
-        self.detailed_statistics['A'] = nucs.upper().count('A')
-        self.detailed_statistics['C'] = nucs.upper().count('C')
-        self.detailed_statistics['G'] = nucs.upper().count('G')
-        self.detailed_statistics['U'] = nucs.upper().count('U')
+        self.detailed_statistics['A'] = nuc_a
+        self.detailed_statistics['C'] = nuc_c
+        self.detailed_statistics['G'] = nuc_g
+        self.detailed_statistics['U'] = nuc_u
 
-        # return self.detailed_statistics
+        self._n_all_pairs = n_all_pairs
+        self._n_gc = n_gc
+        self._n_au = n_au
+        self._n_gu = n_gu
+        self._n_nc = n_nc
 
     def get_dataset_statistics(self):
         self.get_detailed_statistics()
@@ -1073,7 +1066,7 @@ class RNAStatistics():
           'num_pk_samples': self.data.data['has_pk'].sum(),
           'num_multiplet_samples': self.data.data['has_multiplet'].sum(),
           'num_nc_samples': self.data.data['has_nc'].sum(),
-          'total_num_pairs': len(self.detailed_statistics['all_pairs']),
+          'total_num_pairs': self._n_all_pairs,
         }
 
         self.dataset_summary.update({
@@ -1083,11 +1076,12 @@ class RNAStatistics():
           'U-ratio': self.detailed_statistics['U'] / self.dataset_summary['num_samples'],
         })
 
+        total_pairs = max(self._n_all_pairs, 1)
         self.dataset_summary.update({
-          'GC-pair-ratio': len(self.detailed_statistics['C-G']) / len(self.detailed_statistics['all_pairs']),
-          'AU-pair-ratio': len(self.detailed_statistics['A-U']) / len(self.detailed_statistics['all_pairs']),
-          'GU-pair-ratio': len(self.detailed_statistics['G-U']) / len(self.detailed_statistics['all_pairs']),
-          'nc-pair-ratio': len(self.detailed_statistics['nc_pairs']) / len(self.detailed_statistics['all_pairs']),
+          'GC-pair-ratio': self._n_gc / total_pairs,
+          'AU-pair-ratio': self._n_au / total_pairs,
+          'GU-pair-ratio': self._n_gu / total_pairs,
+          'nc-pair-ratio': self._n_nc / total_pairs,
         })
 
 

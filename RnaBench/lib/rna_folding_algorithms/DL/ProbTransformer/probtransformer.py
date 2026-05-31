@@ -49,15 +49,18 @@ class ProbabilisticTransformer():
         # rna_data="RnaBench/lib/rna_folding_algorithms/DL/ProbTransformer/data/rna_data.plk"
         
         
-        if cnn_head_path == "RnaBench/lib/rna_folding_algorithms/DL/ProbTransformer/checkpoints/cnn_head_final.pth" and not os.path.exists("RnaBench/lib/rna_folding_algorithms/DL/ProbTransformer/checkpoints/cnn_head_final.pth"):
-            os.makedirs("checkpoints", exist_ok=True)
+        checkpoints_dir = os.path.join(here, "checkpoints")
+        os.makedirs(checkpoints_dir, exist_ok=True)
+        model_path = os.path.join(checkpoints_dir, "prob_transformer_final.pth")
+        cnn_head_path = os.path.join(checkpoints_dir, "cnn_head_final.pth")
+
+        if not os.path.exists(cnn_head_path):
             print("Download CNN head checkpoint")
-            wget.download("https://ml.informatik.uni-freiburg.de/research-artifacts/probtransformer/cnn_head_final.pth", "RnaBench/lib/rna_folding_algorithms/DL/ProbTransformer/checkpoints/cnn_head_final.pth")
-        
-        if model_path == "RnaBench/lib/rna_folding_algorithms/DL/ProbTransformer/checkpoints/prob_transformer_final.pth" and not os.path.exists("RnaBench/lib/rna_folding_algorithms/DL/ProbTransformer/checkpoints/prob_transformer_final.pth"):
-            os.makedirs("checkpoints", exist_ok=True)
+            wget.download("https://ml.informatik.uni-freiburg.de/research-artifacts/probtransformer/cnn_head_final.pth", cnn_head_path)
+
+        if not os.path.exists(model_path):
             print("Download prob transformer checkpoint")
-            wget.download("https://ml.informatik.uni-freiburg.de/research-artifacts/probtransformer/prob_transformer_final.pth", "RnaBench/lib/rna_folding_algorithms/DL/ProbTransformer/checkpoints/prob_transformer_final.pth")
+            wget.download("https://ml.informatik.uni-freiburg.de/research-artifacts/probtransformer/prob_transformer_final.pth", model_path)
         
         
         transformer_checkpoint = torch.load(model_path, map_location=torch.device(self.rank))

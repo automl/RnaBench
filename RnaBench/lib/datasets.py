@@ -1,14 +1,9 @@
 import typing
-import dask.dataframe as dd
 
 import numpy as np
 import pandas as pd
 import torch
-import numpy as np
 import pickle
-# import modin
-import pandas as pd
-# import pandas as pd
 
 from torch.distributions import Normal, MultivariateNormal
 from torch.utils.data import Dataset
@@ -83,7 +78,7 @@ class TorchDataset(Dataset):
         return self.tasks.struc_itos
 
     @property
-    def struc_itos(self):
+    def struc_stoi(self):
         return self.tasks.struc_stoi
 
 
@@ -454,10 +449,12 @@ class RnaDataset():
             return data
 
     def dask(self, n_workers=4):
+        import dask.dataframe as dd
         self.data = dd.from_pandas(self.data, npartitions=n_workers)
         return self
 
     def to_pandas(self):
+        import dask.dataframe as dd
         if isinstance(self.data, dd.DataFrame):
             self.data = self.data.compute()
         return self

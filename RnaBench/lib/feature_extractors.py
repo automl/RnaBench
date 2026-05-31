@@ -3,17 +3,16 @@ import shutil
 import subprocess
 from datetime import datetime
 
-import forgi.graph.bulge_graph as fgb
 import regex as re
 
 from RnaBench.lib.aggregators import *
 from RnaBench.lib.utils import pairs2db
 
 default_struct_funcs = {
-    "s": lambda x: [float(len(x))] if x is not None else [np.NaN],
-    "h": lambda x: [float(len(x))] if x is not None else [np.NaN],
-    "i": lambda x: list(x.size()) if x is not None else [np.NaN, np.NaN],
-    "m": lambda x: list(sum(list(x.size()))/len(list(x.size())), x._cps[0][0]) if x is not None else [np.NaN, np.NAN]
+    "s": lambda x: [float(len(x))] if x is not None else [np.nan],
+    "h": lambda x: [float(len(x))] if x is not None else [np.nan],
+    "i": lambda x: list(x.size()) if x is not None else [np.nan, np.nan],
+    "m": lambda x: list(sum(list(x.size()))/len(list(x.size())), x._cps[0][0]) if x is not None else [np.nan, np.nan]
 }
 
 feat_aggregators = {
@@ -42,6 +41,7 @@ feat_aggregators = {
 
 
 def forgi_bg(datapoint):
+    import forgi.graph.bulge_graph as fgb
     #check type of datapoint.sequence and datapoint.structure
     #structure = datapoint.structure if isinstance(datapoint.structure, str) else "".join(datapoint.structure)
     #check if sequence is in the datapoint else create from pairs
