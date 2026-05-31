@@ -1,29 +1,5 @@
 # RnaBench — Status (2026-05-30)
 
-## What works
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| `import RnaBench` | ✅ | Fixed (see Changes) |
-| `RnaFoldingBenchmark` (intra_family) | ✅ | Verified |
-| **RNAformer** dim64 | ✅ | f1=0.769, mcc=0.776, wl=0.847 (max_len=80 subset) |
-| **UFold** ufold_train.pt | ✅ | f1=0.720, mcc=0.726, wl=0.801 (max_len=80 subset) |
-| Folding visualization plots | ✅ | `plots/` populated |
-| `RnaDesignBenchmark` inverse_rna_folding | ✅ | Verified |
-| **DeterministicGCA** + RNAFold | ✅ | f1=0.756, solved=0.491 (max_len=80 subset) |
-| **DeterministicGCA** + ContraFold | ✅ | f1=0.684 |
-| **DeterministicGCA** + IpKnot | ✅ | f1=0.743 |
-| **DeterministicGCA** + PKiss | ✅ | |
-| **DeterministicGCA** + LinearFold-V/C | ✅ | |
-| **DeterministicGCA** + RNAStructure Fold | ✅ | Requires `DATAPATH` export |
-| **DeterministicGCA** + SPOT-RNA | ✅ | Slow (~27 min for 80-nt subset, TF graph reload) |
-| **DeterministicGCA** + MxFold2 | ✅ | Requires install from GitHub source (PyPI wheel broken) |
-| Inverse folding visualization plots | ✅ | |
-| `examples/f1score_wl_example.py` | ✅ | |
-| `examples/visualize_data_length_dist.py` | ✅ | Rewrote to avoid OOM |
-| `examples/visualize_representations.py` | ✅ | |
-| Conda env `RnaBench` | ✅ | See setup recipe below |
-
 ## What doesn't work / not yet verified
 
 | Component | Status | Reason |
@@ -36,41 +12,12 @@
 
 ## Conda env setup recipe
 
-The original `environment.yml` does not solve. Use this instead:
-
 ```bash
-conda create -n RnaBench python=3.10 -y
+conda env create -f environment.yml
 conda activate RnaBench
-conda install -c bioconda -c conda-forge viennarna infernal cython -y
-
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-pip install 'setuptools<70' 'numpy<2' 'pytorch-lightning<2.1'
-pip install forgi==2.2.3 grakel pandas scikit-learn biopython tqdm plotly kaleido
-pip install tensorflow  # for SPOT-RNA
-pip install 'mxfold2 @ https://github.com/mxfold/mxfold2/archive/refs/tags/v0.1.2.tar.gz'
-pip install -e .
-```
-
-Key constraints:
-- `numpy<2` — GraKeL wheels compiled for NumPy 1.x crash under NumPy 2
-- `pytorch-lightning<2.1` — ≥2.1 requires torch ≥2.1
-- `setuptools<70` — PL imports `pkg_resources`, removed in setuptools ≥70
-- MxFold2 PyPI wheel is broken (missing C extension); install from GitHub source
-
-## External algorithms (one-time setup)
-
-```bash
-mkdir -p external_algorithms
-# LinearFold
-git clone https://github.com/LinearFold/LinearFold external_algorithms/LinearFold && make -C external_algorithms/LinearFold
-# IpKnot
-gdown 1Oh3kNYbnv_22i4IIYXavPcOo1xSdm1vB -O external_algorithms/ipknot && chmod +x external_algorithms/ipknot
-# SPOT-RNA
-git clone https://github.com/jaswindersingh2/SPOT-RNA external_algorithms/SPOT-RNA
-# VARNA
-mkdir -p external_algorithms/VARNA
-# download VARNAv3-93.jar to external_algorithms/VARNA/
-# the varna shell wrapper is already in external_algorithms/VARNA/varna
+./install_external_algorithms.sh
+python -m RnaBench.download
+./reproduce_all_fast.sh # or ./reproduce_all_working.sh if you have the time/resources (GPU recommended)
 ```
 
 ## How to reproduce
